@@ -1,0 +1,45 @@
+{% extends 'base.html' %}  <!-- Extend your base template if you have one -->
+
+{% block content %}
+    <div class="container mt-4">
+        <h1>Markets</h1>     <button class="btn btn-primary" id="createMarketButton">Create Market</button>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Condition Statement</th>
+                    <th>Price Position A</th>
+                    <th>Price Position B</th>
+                    
+                </tr>
+            </thead>
+            <tbody id="marketTableBody">
+                <!-- Table rows will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Fetch market data and populate the table
+        fetch('/api/markets/')
+            .then(response => response.json())
+            .then(data => {
+                const marketTableBody = document.getElementById('marketTableBody');
+                data.results.forEach(market => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><a href="/markets/${market.id}/">${market.name}</a></td>
+                        <td>${market.condition_statement}</td>
+                        <td>${market.price_for_position_a}</td>
+                        <td>${market.price_for_position_b}</td>
+                    `;
+                    marketTableBody.appendChild(row);
+                });
+            })
+            .catch(error => console.error('Error fetching market data:', error));
+        
+            document.getElementById("createMarketButton").addEventListener("click", function() {
+                window.location.href = "/markets/create/";
+            });
+    </script>
+{% endblock %}

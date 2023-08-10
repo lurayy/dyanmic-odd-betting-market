@@ -16,7 +16,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 100214400
 
 INSTALLED_APPS = [
     "users",
-
+    "market",
     # libs
     'django_filters',
     "jazzmin",

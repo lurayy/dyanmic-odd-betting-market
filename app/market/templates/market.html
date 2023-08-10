@@ -1,0 +1,126 @@
+{% extends 'index.html' %}
+
+{% block content %}
+    <div class="container mt-4">
+
+        <h1>Markets</h1>     <button  class="btn btn-primary" id="createMarketButton">Create Market</button>
+
+        <table class="table table-bordered">
+            <tr>
+                <th>ID</th>
+                <td>{{ market.id }}</td>
+            </tr>
+            <tr>
+                <th>Name</th>
+                <td>{{ market.name }}</td>
+            </tr>
+            <tr>
+                <th>Condition Statement</th>
+                <td>{{ market.condition_statement }}</td>
+            </tr>
+            <tr>
+                <th>Price per share for betting on A</th>
+                <td>{{ market.price_for_position_a }}</td>
+            </tr>
+            <tr>
+                <th>Price per share for betting on B</th>
+                <td>{{ market.price_for_position_b }}</td>
+            </tr>
+            <tr>
+                <th>Outcome</th>
+                <td>{{ market.outcome }}</td>
+            </tr>
+            
+            <!-- Add more fields as needed -->
+        </table>
+
+        <h1>Bets for this market</h1>
+
+        <ul class="nav nav-tabs" id="betTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="for-tab" data-toggle="tab" href="#for" role="tab" aria-controls="for" aria-selected="true">For</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="against-tab" data-toggle="tab" href="#against" role="tab" aria-controls="against" aria-selected="false">Against</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="create-bet-tab" data-toggle="tab" href="#create-bet" role="tab" aria-controls="create-bet" aria-selected="false">Create Bet</a>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="betTabsContent">
+            <div class="tab-pane fade show active" id="for" role="tabpanel" aria-labelledby="for-tab">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Bet Amount</th>
+                            <th>Shares</th>
+
+                            <!-- Add more table headers as needed -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bet in bets_for %}
+                            <tr>
+                                <td>{{ bet.user.name }}</td>
+                                <td>{{ bet.bet_amount }}</td>
+                                <td>{{ bet.positions }}</td>
+
+                                <!-- Add more table cells for other attributes -->
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="against" role="tabpanel" aria-labelledby="against-tab">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Bet Amount</th>
+                            <th>Shares</th>
+                            <!-- Add more table headers as needed -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bet in bets_against %}
+                            <tr>
+                                <td>{{ bet.user.name }}</td>
+                                <td>{{ bet.bet_amount }}</td>
+                                <td>{{ bet.positions }}</td>
+
+                                <!-- Add more table cells for other attributes -->
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="create-bet" role="tabpanel" aria-labelledby="create-bet-tab">
+                <h2>Create a New Bet</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ bet_form.as_p }}
+                    <button type="submit" class="btn btn-primary">Create Bet</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+    
+    <script>
+        $(document).ready(function () {
+            $('#betTabs a').on('click', function (e) {
+                e.preventDefault();
+                $(this).tab('show');
+            });
+        });
+
+        
+        
+
+            document.getElementById("createMarketButton").addEventListener("click", function() {
+                window.location.href = "/markets/create/";
+            });
+    </script>
+{% endblock %}
