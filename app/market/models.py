@@ -1,8 +1,7 @@
-from decimal import Decimal
-
+from django.forms import ValidationError
 from core.utils.models import SingletonModel, TimeStampModel
-from django.db import models, transaction
-from django.db.models.signals import post_save
+from django.db import models
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 
@@ -29,32 +28,62 @@ class Market(TimeStampModel):
     price_for_position_b = models.DecimalField(default=0.00,
                                                max_digits=60,
                                                decimal_places=2)
+    minimum_price_for_position = models.DecimalField(default=0.00,
+                                                     max_digits=60,
+                                                     decimal_places=2)
+    celling_price = models.DecimalField(default=0.00,
+                                        max_digits=60,
+                                        decimal_places=2)
+    pool_amount_a = models.DecimalField(default=0.00,
+                                        max_digits=60,
+                                        decimal_places=2)
+    pool_amount_b = models.DecimalField(default=0.00,
+                                        max_digits=60,
+                                        decimal_places=2)
+    is_closed = models.BooleanField(default=False)
 
-    def update_prices(self):
-        total_pooled_amount_a = sum(
-            bet.bet_amount for bet in self.bets.filter(position_for='a'))
-        total_pooled_amount_b = sum(
-            bet.bet_amount for bet in self.bets.filter(position_for='b'))
-
-        if total_pooled_amount_a == 0 or total_pooled_amount_b == 0:
-            # Handle the case where there are no bets on one side
-            pass
-            # Reset prices to default or a preferred value
-            # self.price_for_position_a = Decimal('0.00')
-            # self.price_for_position_b = Decimal('0.00')
-        else:
-            # Calculate ratios and update prices
-            total_ratio = total_pooled_amount_a / total_pooled_amount_b
-
-            # You can choose a constant or a formula to calculate prices
-            # based on the ratios and your desired logic
-            new_price_for_position_a = self.price_for_position_a * total_ratio
-            new_price_for_position_b = self.price_for_position_b * total_ratio
-
-            self.price_for_position_a = new_price_for_position_a
-            self.price_for_position_b = new_price_for_position_b
-
+    def update_prices(self, amount, position_for):
+        setattr(self, f'pool_amount_{position_for}',
+                getattr(self, f'pool_amount_{position_for}') + amount)
         self.save()
+        # Ensure pool_amount_a and pool_amount_b are greater than zero
+        if self.pool_amount_a <= 0 and self.pool_amount_b <= 0:
+            return
+        elif self.pool_amount_a <= 0:
+            # Update the price fields
+            self.price_for_position_a = self.minimum_price_for_position
+            self.price_for_position_b = (self.celling_price -
+                                         self.minimum_price_for_position)
+            self.save()
+            return
+        elif self.pool_amount_b <= 0:
+            self.price_for_position_a = (self.celling_price -
+                                         self.minimum_price_for_position)
+            self.price_for_position_b = self.minimum_price_for_position
+            self.save()
+            return
+
+        # Calculate the ratio of pool_amount_a and pool_amount_b
+        ratio_a = self.pool_amount_a / (self.pool_amount_a +
+                                        self.pool_amount_b)
+        ratio_b = self.pool_amount_b / (self.pool_amount_a +
+                                        self.pool_amount_b)
+
+        # Distribute the ceiling price based on the ratios
+        # price_for_position_a = self.celling_price * ratio_a
+        # price_for_position_b = self.celling_price * ratio_b
+        price_for_position_a = self.minimum_price_for_position + (
+            self.celling_price - self.minimum_price_for_position) * ratio_a
+        price_for_position_b = self.minimum_price_for_position + (
+            self.celling_price - self.minimum_price_for_position) * ratio_b
+
+        # Update the price fields
+        self.price_for_position_a = price_for_position_a
+        self.price_for_position_b = price_for_position_b
+        self.save()
+
+    def close_up_market():
+        pass
 
 
 class Bet(TimeStampModel):
@@ -74,9 +103,15 @@ class Bet(TimeStampModel):
                                       decimal_places=2)
 
 
+@receiver(pre_save, sender=Bet)
+def handle_pre_save(sender, instance, **kwargs):
+    if instance.market.is_closed:
+        raise ValidationError('Cannot bet on closed Market.')
+
+
 @receiver(post_save, sender=Bet)
 def update_market_prices(sender, instance, **kwargs):
-    instance.market.update_prices()
+    instance.market.update_prices(instance.bet_amount, instance.position_for)
 
 
 class Transaction(TimeStampModel):

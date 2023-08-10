@@ -15,7 +15,7 @@ class MarketForm(forms.ModelForm):
         model = Market
         fields = [
             'name', 'condition_statement', 'price_for_position_a',
-            'price_for_position_b'
+            'price_for_position_b', 'minimum_price_for_position'
         ]
 
 

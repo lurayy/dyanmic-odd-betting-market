@@ -42,7 +42,10 @@ def create_market(request):
     if request.method == 'POST':
         market_form = MarketForm(request.POST)
         if market_form.is_valid():
-            market_form.save()
+            market = market_form.save(commit=False)
+            market.celling_price = (market.price_for_position_a +
+                                    market.price_for_position_b)
+            market.save()
             return redirect(
                 '/')  # Redirect to the detail view of the created market
     else:
